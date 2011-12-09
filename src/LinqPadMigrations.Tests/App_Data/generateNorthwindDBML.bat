@@ -1,0 +1,2 @@
+set sqlmetalPath="C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SqlMetal.exe"
+%sqlmetalPath% Northwind.sdf /dbml:Northwind.dbml /context:NorthwindContext /namespace:LinqPadMigrations.Tests.Northwind

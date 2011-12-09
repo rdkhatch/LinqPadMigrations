@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinqPadMigrations", "LinqPadMigrations\LinqPadMigrations.csproj", "{B4D70321-DA34-44C4-96E4-ED2C057EFE7D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinqPadMigrations.Tests", "LinqPadMigrations.Tests\LinqPadMigrations.Tests.csproj", "{1F43BC37-533D-40EB-8D42-221B40CF8168}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B4D70321-DA34-44C4-96E4-ED2C057EFE7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4D70321-DA34-44C4-96E4-ED2C057EFE7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4D70321-DA34-44C4-96E4-ED2C057EFE7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4D70321-DA34-44C4-96E4-ED2C057EFE7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F43BC37-533D-40EB-8D42-221B40CF8168}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F43BC37-533D-40EB-8D42-221B40CF8168}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F43BC37-533D-40EB-8D42-221B40CF8168}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F43BC37-533D-40EB-8D42-221B40CF8168}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
