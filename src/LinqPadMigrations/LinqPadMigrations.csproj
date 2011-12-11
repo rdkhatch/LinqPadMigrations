@@ -31,6 +31,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="LPRun">
+      <HintPath>..\..\submodules\LINQPadRunner\LPRun\bin\Debug\LPRun.exe</HintPath>
+    </Reference>
     <Reference Include="NLog">
       <HintPath>..\packages\NLog.2.0.0.2000\lib\net40\NLog.dll</HintPath>
     </Reference>
@@ -44,9 +47,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ScriptCompiler\CodeDomScriptCompiler.cs" />
+    <Compile Include="ScriptExecutor\LinqMigrationExecutor.cs" />
+    <Compile Include="Support\IScriptCompiler.cs" />
     <Compile Include="Migrators\LinqMigratorBase.cs" />
     <Compile Include="Migrators\SQLCompactLinqMigrator.cs" />
     <Compile Include="Migrators\SQLServerLinqMigrator.cs" />
+    <Compile Include="ScriptCompiler\LinqPadCSharpCreator.cs" />
+    <Compile Include="ScriptCompiler\LinqToSQLDataContextGenerator.cs" />
+    <Compile Include="Support\IScriptExecutor.cs" />
     <Compile Include="Support\ILinqPadMigrator.cs" />
     <Compile Include="Support\IMigrator.cs" />
     <Compile Include="LinqPadMigrator.cs" />

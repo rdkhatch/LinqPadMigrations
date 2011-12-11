@@ -1,112 +1,79 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Diagnostics;
-using System.IO;
 using System.Reflection;
+using LinqPadMigrations.ScriptCompiler;
 using LinqPadMigrations.Support;
+using Microsoft.CSharp;
 
 namespace LinqPadMigrations.Migrators
 {
     public abstract class LinqMigratorBase : IMigrator
     {
+
         public virtual bool CanExecute(string connectionString, string scriptFilePath)
         {
             return scriptFilePath.ToUpper().EndsWith(".LINQ");
         }
 
+        protected abstract string GetSqlMetalConnectionStringArg(string connectionString);
+
         public MigrationResult ExecuteMigration(string connectionString, string scriptFilePath)
         {
-            bool success = true;
-            Exception migrationException = null;
-            var errorMessages = new List<string>();
+            // Generate C# DataContext using SqlMetal
+            var sqlMetalConnectionStringArg = GetSqlMetalConnectionStringArg(connectionString);
+            var generatedCSharpDataContext = new LinqToSQLDataContextGenerator().GenerateDataContext_AndGetCSharpCode(connectionString, sqlMetalConnectionStringArg);
 
-            Action executeMe = null;
+            // Get LinqPad Script
+            var linqpadCreator = new LinqPadCSharpCreator();
+            var script = linqpadCreator.Parse(scriptFilePath);
 
-            // Compile
+            // Add namespace for DataContext
+            script.Namespaces.Add(LinqToSQLDataContextGenerator.DataContextNamespace);
+
+            // Convert LinqPad Script to Executable Source Code
+            var executableScript = linqpadCreator.MakeScriptExecutable(script);
+
+            // Add DataContext source to executable script
+            executableScript.SourceCodePieces.Add(generatedCSharpDataContext);
+
+            // Create Compiler
+            var csharpProvider = new CSharpCodeProvider();
+            IScriptCompiler compiler = new CodeDomScriptCompiler(csharpProvider);
+
+
+            Assembly assembly = null;
             try
             {
-                executeMe = CompileScript(connectionString, scriptFilePath);
+                // Compile Script > .NET Assembly
+                assembly = compiler.Compile(executableScript.AssemblyReferences, executableScript.SourceCodePieces);
             }
             catch (Exception ex)
             {
-                success = false;
-                migrationException = ex;
-                errorMessages.Add("Error while compiling script.");
+                throw new MigrationException(new MigrationResult(scriptFilePath, false, new[] { "Failed to compile script." }, ex));
             }
 
-            // Execute
-            if (success)
-            {
-                try
-                {
-                    executeMe.Invoke();
+            IScriptExecutor executor = GetScriptExecutor(script);
 
-                    //      .TEST.LINQ
-                    //          Make sure it returns zero results... or doesn't throw an exception
-                }
-                catch (Exception ex)
-                {
-                    success = false;
-                    migrationException = ex;
-                    errorMessages.Add("Error while executing compiled script.");
-                }
+            try
+            {
+                // Execute!
+                var result = executor.Execute(assembly, scriptFilePath);
+                return result;
             }
-
-            var result = new MigrationResult(scriptFilePath, success, errorMessages, migrationException);
-
-            if (success = false)
-                throw new MigrationException(result);
-
-            return result;
-        }
-
-        private Action CompileScript(string connectionString, string scriptFilePath)
-        {
-            var generatedCSharpDataContext = GenerateDataContext_AndGetCSharpCode(connectionString);
-
-            // Call LINQPadRunner here
-
-            return () =>
+            catch (Exception ex)
             {
-                // put execute code here
-            };
+                throw new MigrationException(new MigrationResult(scriptFilePath, false, new[] { "Failed to execute compiled script." }, ex));
+            }
         }
 
-        protected abstract string BuildSQLMetalCommand(string sqlmetalPath, string connectionString);
-
-        public string GenerateDataContext_AndGetCSharpCode(string connectionString)
+        private static IScriptExecutor GetScriptExecutor(LinqPadQuery script)
         {
-            var sqlmetalPath = ConfigurationManager.AppSettings["sqlmetalPath"];
-
-            var command = BuildSQLMetalCommand(sqlmetalPath, connectionString);
-
-            var workingDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            var generatedCSharpDataContext = RunShellCommand(command, null, workingDirectory);
-
-            return generatedCSharpDataContext;
+            if (script.Kind == LinqPadQueryKind.Program)
+                return new ScriptExecutor.LinqMigrationExecutor();
+            else if (script.Kind == LinqPadQueryKind.Expression)
+                return new ScriptExecutor.LinqUnitTestExecutor();
+            else
+                throw new NotSupportedException(string.Format("Query Kind '{0}' is not supported.", script.Kind));
         }
 
-        private static string RunShellCommand(string command, string args = null, string workingDirectory = null)
-        {
-            // http://stackoverflow.com/questions/206323/how-to-execute-command-line-in-c-get-std-out-results
-
-            // Start the child process.
-            Process p = new Process();
-            // Redirect the output stream of the child process.
-            p.StartInfo.UseShellExecute = false;
-            p.StartInfo.RedirectStandardOutput = true;
-            p.StartInfo.Arguments = args;
-            p.StartInfo.FileName = command;
-            p.StartInfo.WorkingDirectory = workingDirectory;
-            p.Start();
-            // Do not wait for the child process to exit before
-            // reading to the end of its redirected stream.
-            // Read the output stream first and then wait.
-            string output = p.StandardOutput.ReadToEnd();
-            p.WaitForExit();
-
-            return output;
-        }
     }
 }

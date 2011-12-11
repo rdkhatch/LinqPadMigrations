@@ -4,9 +4,9 @@ namespace LinqPadMigrations.Migrators
 {
     public class SQLServerLinqMigrator : LinqMigratorBase
     {
-        protected override string BuildSQLMetalCommand(string sqlmetalPath, string connectionString)
+        protected override string GetSqlMetalConnectionStringArg(string connectionString)
         {
-            var command = String.Format("\"{0}\" /conn:\"{1}\" /code /context:TypedDataContext /namespace:MyDataContext", sqlmetalPath, connectionString);
+            var command = String.Format("/conn:\"{0}\"", connectionString);
             return command;
         }
     }

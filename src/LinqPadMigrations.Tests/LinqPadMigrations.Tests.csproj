@@ -97,6 +97,12 @@
     <None Include="TempDBs\placeholder.to.copy.folder.do.not.delete">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="TestScripts\LinqPad Query Expression.Failing - Returns Results.linq">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestScripts\LinqPad Query Expression.Passing - Returns Zero Results.linq">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="TestScripts\Update Customer BOLID Title from Owner to Manager.linq">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

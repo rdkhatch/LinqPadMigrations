@@ -18,12 +18,16 @@ namespace LinqPadMigrations
 
     public class MigrationResult
     {
-        public MigrationResult(string scriptFile, bool success, List<string> errorMessages, Exception migrationException)
+        public MigrationResult(string scriptFile, bool success, IEnumerable<string> errorMessages, Exception migrationException)
         {
+            ErrorMessages = new List<string>();
+
             ScriptFile = scriptFile;
             Success = success;
-            ErrorMessages = errorMessages;
             MigrationException = migrationException;
+
+            if (errorMessages != null)
+                ErrorMessages.AddRange(errorMessages);
         }
 
         public bool Success { get; private set; }

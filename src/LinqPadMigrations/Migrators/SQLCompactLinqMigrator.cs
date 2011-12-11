@@ -6,14 +6,18 @@ namespace LinqPadMigrations.Migrators
     {
         public override bool CanExecute(string connectionString, string scriptFilePath)
         {
+            // SQL Compact connection strings contain:  "Data Source = MyDatabase.sdf"
             return connectionString.ToUpper().Contains(".SDF") && base.CanExecute(connectionString, scriptFilePath);
         }
 
-        protected override string BuildSQLMetalCommand(string sqlmetalPath, string connectionString)
+        protected override string GetSqlMetalConnectionStringArg(string connectionString)
         {
+            // SQL Compact connection strings contain:  "Data Source = MyDatabase.sdf"            
             var extractedSQLCompacatFilePathFromConnectionString = connectionString.Replace("Data Source", string.Empty).Replace("=", string.Empty).Replace(";", string.Empty);
-            var command = String.Format("\"{0}\" /code /context:TypedDataContext /namespace:MyDataContext \"{1}\"", sqlmetalPath, extractedSQLCompacatFilePathFromConnectionString);
-            return command;
+
+            // SqlMetal simply needs the path to the .SDF file (with quotes around it)
+            var connectionStringArg = String.Format("\"{0}\"", extractedSQLCompacatFilePathFromConnectionString);
+            return connectionStringArg;
         }
     }
 }
