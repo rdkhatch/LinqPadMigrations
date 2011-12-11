@@ -30,10 +30,7 @@ namespace LinqPadMigrations.Migrators
             script.Namespaces.Add(LinqToSQLDataContextGenerator.DataContextNamespace);
 
             // Convert LinqPad Script to Executable Source Code
-            var executableScript = linqpadCreator.MakeScriptExecutable(script);
-
-            // Add DataContext source to executable script
-            executableScript.SourceCodePieces.Add(generatedCSharpDataContext);
+            var executableScript = linqpadCreator.MakeScriptExecutable(script, generatedCSharpDataContext);
 
             // Create Compiler
             var csharpProvider = new CSharpCodeProvider();

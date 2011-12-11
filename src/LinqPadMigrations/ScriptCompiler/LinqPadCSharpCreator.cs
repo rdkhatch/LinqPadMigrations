@@ -3,8 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
+using Microsoft.CSharp;
 
 namespace LinqPadMigrations.ScriptCompiler
 {
@@ -20,7 +22,7 @@ namespace LinqPadMigrations.ScriptCompiler
             return query;
         }
 
-        public ExecutableScript MakeScriptExecutable(LinqPadQuery script)
+        public ExecutableScript MakeScriptExecutable(LinqPadQuery script, string generatedDataContextCode)
         {
             var program = new ExecutableScript();
 
@@ -45,8 +47,11 @@ namespace LinqPadMigrations.ScriptCompiler
                                                from nspace in namespaceGroup
                                                select string.Format("using {0};", nspace));
 
+            // Add DataContext source to executable script
+            program.SourceCodePieces.Add(generatedDataContextCode);
+
             // Wrap Code in Main() method (if needed)
-            var scriptMethodCode = ConvertScriptIntoMethodByQueryKind(script);
+            var scriptMethodCode = ConvertScriptIntoMethodByQueryKind(script, generatedDataContextCode);
 
             var code = string.Format(@"
 
@@ -69,7 +74,7 @@ namespace LinqPadMigrations.ScriptCompiler
             return program;
         }
 
-        private static string ConvertScriptIntoMethodByQueryKind(LinqPadQuery script)
+        private static string ConvertScriptIntoMethodByQueryKind(LinqPadQuery script, string generatedDataContextCode)
         {
             if (script.Kind == LinqPadQueryKind.Program)
             {
@@ -81,7 +86,7 @@ namespace LinqPadMigrations.ScriptCompiler
                 string contextName = "____context";
 
                 // Add Context to Expression
-                var expressionWithContext = AddContextToExpression(script.ScriptCode, contextName);
+                var expressionWithContext = AddContextToExpression(script.ScriptCode, contextName, generatedDataContextCode);
 
                 // Hookup Expressions to DataContext
                 var code = String.Format(@"
@@ -106,7 +111,7 @@ namespace LinqPadMigrations.ScriptCompiler
                 return string.Format(@"public void Main() {{ {0} }}", script.ScriptCode);
         }
 
-        private static string AddContextToExpression(string expression, string contextName)
+        private static string AddContextToExpression(string expression, string contextName, string generatedDataContextCode)
         {
             // Use Cases:
             //      from _var_ in TableName
@@ -116,10 +121,30 @@ namespace LinqPadMigrations.ScriptCompiler
             //      from c in Customers
             //      select new { Customers = c }
 
-            // Must have a list of the data tables!
             // Compile DataContext and Reflect over table names
+            Assembly assembly = new CodeDomScriptCompiler(new CSharpCodeProvider()).Compile(StandardAssemblies, new[] { generatedDataContextCode });
 
-            throw new NotImplementedException();
+            var tableAttributeType = typeof(System.Data.Linq.Mapping.TableAttribute);
+
+            var tableTypes = from type in assembly.GetTypes()
+                             where type.GetCustomAttributes(tableAttributeType, true).Any()
+                             select type;
+
+            // List of the table names
+            var tableNames = tableTypes.Select(type => type.Name).ToList();
+
+            string fixedExpression = expression;
+
+            //Simple replace.
+            //TODO: Use smarter RegEx pattern instead (using \w for whitespace instead of spaces)
+            foreach (var tableName in tableNames)
+            {
+                string find = string.Format(" {0}", tableName);
+                string replace = string.Format(" {0}.{1}", contextName, tableName);
+                fixedExpression = fixedExpression.Replace(find, replace);
+            }
+
+            return fixedExpression;
         }
 
         /// <summary>
