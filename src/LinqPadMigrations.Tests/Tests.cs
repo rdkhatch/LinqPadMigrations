@@ -31,6 +31,17 @@ namespace LinqPadMigrations.Tests
         }
 
         [Test]
+        public void should_support_running_SQL_batches_using_GO_command()
+        {
+            PerformTest(TestScripts.SQL_BatchCommandsUsingGO,
+                (context) =>
+                {
+                    var customer = context.Customers.First();
+                    Assert.AreEqual("Ryan", customer.ContactName);
+                });
+        }
+
+        [Test]
         public void should_generate_linq_datacontext_with_connection_string_as_default_constructor()
         {
             var generator = new LinqToSQLDataContextGenerator();
@@ -72,9 +83,21 @@ namespace LinqPadMigrations.Tests
         }
 
         [Test]
-        public void linq_QueryKind_Expression_Should_FAIL_when_returns_results()
+        public void linq_QueryKind_Expression_Should_support_anonymous_LET_and_SELECT_NEW_TABLENAME_without_inserting_datacontext_into_select_new()
         {
-            Assert.Throws<MigrationException>(() => PerformTest(TestScripts.LinqPadQueryExpression_Failing, null));
+            PerformTest(TestScripts.LinqPadQueryExpression_UsingSelectNewTableName, null);
+        }
+
+        [Test]
+        public void linq_QueryKind_Expression_Should_FAIL_when_returns_collection()
+        {
+            Assert.Throws<MigrationException>(() => PerformTest(TestScripts.LinqPadQueryExpression_Failing_Returns_Collection, null));
+        }
+
+        [Test]
+        public void linq_QueryKind_Expression_Should_FAIL_when_returns_single_value()
+        {
+            Assert.Throws<MigrationException>(() => PerformTest(TestScripts.LinqPadQueryExpression_Failing_Returns_SingleValue, null));
         }
 
     }

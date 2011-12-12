@@ -97,10 +97,13 @@ namespace LinqPadMigrations.ScriptCompiler
                                     // Create new DataContext
                                     var {0} = new {1}();
 
-                                    var q = {2};
+                                    object q = {2};
 
-                                    // Execute Query
-                                    return q.ToList();
+                                    // Execute Query, if a deferred enumerable
+                                    if (q != null && q is IEnumerable)
+                                        q = (q as IEnumerable).Cast<object>().ToList();
+
+                                    return q;
                                 }}
 
                             ", contextName, LinqToSQLDataContextGenerator.DataContextName, expressionWithContext);
@@ -113,13 +116,12 @@ namespace LinqPadMigrations.ScriptCompiler
 
         private static string AddContextToExpression(string expression, string contextName, string generatedDataContextCode)
         {
+            // Other method (not being used) : How to replace text outside of markers:  http://stackoverflow.com/questions/3187248/replace-using-regex-outside-of-text-markers
+
             // Use Cases:
             //      from _var_ in TableName
             //      let _var_ = TableName.Where(.....)
-
-            // NOT SUPPORTED: [would require a C# parser]
-            //      from c in Customers
-            //      select new { Customers = c }
+            //      select new { TableName = ... }
 
             // Compile DataContext and Reflect over table names
             Assembly assembly = new CodeDomScriptCompiler(new CSharpCodeProvider()).Compile(StandardAssemblies, new[] { generatedDataContextCode });
@@ -135,13 +137,13 @@ namespace LinqPadMigrations.ScriptCompiler
 
             string fixedExpression = expression;
 
-            //Simple replace.
-            //TODO: Use smarter RegEx pattern instead (using \w for whitespace instead of spaces)
             foreach (var tableName in tableNames)
             {
-                string find = string.Format(" {0}", tableName);
-                string replace = string.Format(" {0}.{1}", contextName, tableName);
-                fixedExpression = fixedExpression.Replace(find, replace);
+                // Find tableName - which is preceded by a whitespace, and NOT followed by an equal sign (avoid assignments in select new { tableName = .... }
+                string findExpr = string.Format(@"(?<=\s)({0})(?!\s*?=)", tableName);
+                // Replace with context prefix
+                string replaceExpr = string.Format(" {0}.$1", contextName);
+                fixedExpression = System.Text.RegularExpressions.Regex.Replace(fixedExpression, findExpr, replaceExpr);
             }
 
             return fixedExpression;

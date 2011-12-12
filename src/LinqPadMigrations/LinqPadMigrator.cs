@@ -27,6 +27,11 @@ namespace LinqPadMigrations
 
         public BatchMigrationResult ExecuteMigrations(string connectionString, IEnumerable<string> scriptFilePaths)
         {
+            return ExecuteMigrations(connectionString, scriptFilePaths, null, null);
+        }
+
+        public BatchMigrationResult ExecuteMigrations(string connectionString, IEnumerable<string> scriptFilePaths, Action<string> beforeScript, Action<MigrationResult> afterScript)
+        {
             // Match Script with Migrator
             var q = from scriptFile in scriptFilePaths
                     let migrator = Migrators.FirstOrDefault(m => m.CanExecute(connectionString, scriptFile))
@@ -37,8 +42,14 @@ namespace LinqPadMigrations
             // Execute Migration Scripts
             foreach (var tuple in q)
             {
+                if (beforeScript != null)
+                    beforeScript.Invoke(tuple.scriptFile);
+
                 var migrationResult = tuple.migrator.ExecuteMigration(connectionString, tuple.scriptFile);
                 migrationResults.Add(migrationResult);
+
+                if (afterScript != null)
+                    afterScript.Invoke(migrationResult);
 
                 // If Failed - Stop executing migrations
                 if (migrationResult.Success == false)

@@ -11,7 +11,7 @@ namespace LinqPadMigrations.Console
         {
             var options = new GeniusCode.Components.Console.Support.RequiredValuesOptionSet();
             var connectionString = options.AddRequiredVariable<string>("conn", "Connection string to use for Linq To SQL.");
-            var directory = options.AddRequiredVariable<string>("folder", "Folder that contains .SQL and .LINQ files for database migration.");
+            var relativeDirectory = options.AddRequiredVariable<string>("folder", "Folder that contains .SQL and .LINQ files for database migration.");
 
             var console = new GeniusCode.Components.Console.ConsoleManager(options, "LinqPadMigrations");
             bool success = console.PerformCanProceed(System.Console.Out, args);
@@ -20,21 +20,51 @@ namespace LinqPadMigrations.Console
             {
                 var migrator = new LinqPadMigrator();
 
-                if (!Directory.Exists(directory.Value))
+                var directory = relativeDirectory.Value;
+                if (Path.IsPathRooted(directory) == false)
+                {
+                    // Make absolute using command prompt's working directory
+                    var workingDirectory = Directory.GetCurrentDirectory(); //Environment.CurrentDirectory
+                    directory = Path.Combine(workingDirectory, relativeDirectory.Value);
+                }
+
+                System.Console.Out.WriteLine("-----------------------------");
+                System.Console.Out.WriteLine("Folder: " + directory);
+                System.Console.Out.WriteLine("Connn: " + connectionString.Value);
+                System.Console.Out.WriteLine("-----------------------------");
+
+                if (!Directory.Exists(directory))
                 {
                     System.Console.Out.WriteLine("Directory for migration files does not exist.");
                 }
                 else
                 {
-                    var filePaths = from filePath in Directory.GetFiles(directory.Value)
-                                    where filePath.ToUpper().EndsWith("*.SQL") || filePath.ToUpper().EndsWith("*.LINQ")
-                                    select filePath;
+                    var filePaths = (from filePath in Directory.GetFiles(directory)
+                                     where filePath.ToUpper().EndsWith(".SQL") || filePath.ToUpper().EndsWith(".LINQ")
+                                     orderby filePath ascending
+                                     select filePath).ToList();
 
                     if (filePaths.Count() > 0)
                     {
+                        System.Console.Out.WriteLine("Executing Migrations...");
+
+                        Action<string> beforeScript = (scriptFilePath) =>
+                            {
+                                var scriptFileName = Path.GetFileName(scriptFilePath);
+                                System.Console.Out.Write(scriptFileName + " ... ");
+                            };
+
+                        Action<MigrationResult> afterScript = (result) =>
+                            {
+                                if (result.Success)
+                                    System.Console.Out.WriteLine("Completed Successfully.");
+                                else
+                                    System.Console.Out.WriteLine("Completed with Errors.");
+                            };
+
                         try
                         {
-                            var result = migrator.ExecuteMigrations(connectionString.Value, filePaths);
+                            var result = migrator.ExecuteMigrations(connectionString.Value, filePaths, beforeScript, afterScript);
                             var fileCount = result.Results.Count();
 
                             if (filePaths.Count() == fileCount)
@@ -48,6 +78,7 @@ namespace LinqPadMigrations.Console
                             System.Console.Out.WriteLine("Migration Failed - An exception occurred. {0}; {1}", ex.Message, ex.ToString());
                         }
                     }
+                    else
                     {
                         System.Console.Out.WriteLine("Migration Failed - No .SQL or .LINQ files were found in specified directory.");
                     }

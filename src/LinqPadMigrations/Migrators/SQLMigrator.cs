@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.IO;
 using LinqPadMigrations.Support;
@@ -8,6 +9,9 @@ namespace LinqPadMigrations.Migrators
 {
 
     // Transaction Documentation: http://msdn.microsoft.com/en-us/library/86773566.aspx
+    // GO Command Documentation: http://social.msdn.microsoft.com/Forums/hr/sqldataaccess/thread/f8e3fa51-55af-4a03-a248-425a4e2aa82a
+    //                           http://msdn.microsoft.com/en-us/library/ms188037.aspx
+
     internal class SQLMigrator : IMigrator
     {
         internal SQLMigrator(Func<string, DbConnection> sqlConnectionFactory)
@@ -22,7 +26,7 @@ namespace LinqPadMigrations.Migrators
         public MigrationResult ExecuteMigration(string connectionString, string scriptFilePath)
         {
             // Read SQL from Script
-            var scriptSQL = File.ReadAllText(scriptFilePath);
+            string[] scriptSQLLines = File.ReadAllLines(scriptFilePath);
 
             bool success = true;
             Exception exception = null;
@@ -34,17 +38,45 @@ namespace LinqPadMigrations.Migrators
 
                 var transaction = connection.BeginTransaction();
 
-                try
+                Action<string> sendCommand = (commandText) =>
                 {
+                    // Avoid empty commands
+                    if (string.IsNullOrWhiteSpace(commandText))
+                        return;
+
                     // Must assign both transaction object and connection
                     // to Command object for a pending local transaction
-                    var command = connection.CreateCommand();
+                    DbCommand command = connection.CreateCommand();
                     command.Connection = connection;
                     command.Transaction = transaction;
 
                     // Execute SQL
-                    command.CommandText = scriptSQL;
+                    command.CommandText = commandText;
                     command.ExecuteNonQuery();
+                };
+
+                try
+                {
+                    string currentBatchText = string.Empty;
+
+                    foreach (var line in scriptSQLLines)
+                    {
+                        bool isGoCommand = System.Text.RegularExpressions.Regex.IsMatch(line, @"^\s*GO\s*$");
+
+                        if (isGoCommand)
+                        {
+                            // Send Batch
+                            sendCommand.Invoke(currentBatchText);
+                            // Start new Batch
+                            currentBatchText = string.Empty;
+                        }
+                        else
+                            // Append to current Batch
+                            currentBatchText += "\n" + line;
+                    }
+
+                    // Send whatever is left over in our batch text since last GO command
+                    sendCommand(currentBatchText);
 
                     transaction.Commit();
                 }
@@ -65,8 +97,11 @@ namespace LinqPadMigrations.Migrators
                         errorMessages.Add("Failed to Rollback Transaction:" + rollbackException);
                     }
                 }
-
-                connection.Close();
+                finally
+                {
+                    if (connection.State != ConnectionState.Closed)
+                        connection.Close();
+                }
             }
 
             var result = new MigrationResult(scriptFilePath, success, errorMessages, exception);

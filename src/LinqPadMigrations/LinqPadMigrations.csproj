@@ -49,7 +49,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ScriptCompiler\CodeDomScriptCompiler.cs" />
-    <Compile Include="ScriptExecutor\LinqMigrationExecutor.cs" />
+    <Compile Include="ScriptExecutor\LinqPadProgramExecutor.cs" />
+    <Compile Include="ScriptExecutor\LinqPadExpressionAsUnitTestExecutor.cs" />
     <Compile Include="Support\IScriptCompiler.cs" />
     <Compile Include="Migrators\LinqMigratorBase.cs" />
     <Compile Include="Migrators\SQLCompactLinqMigrator.cs" />

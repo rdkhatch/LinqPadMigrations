@@ -36,7 +36,6 @@ namespace LinqPadMigrations.Migrators
             var csharpProvider = new CSharpCodeProvider();
             IScriptCompiler compiler = new CodeDomScriptCompiler(csharpProvider);
 
-
             Assembly assembly = null;
             try
             {
@@ -65,9 +64,9 @@ namespace LinqPadMigrations.Migrators
         private static IScriptExecutor GetScriptExecutor(LinqPadQuery script)
         {
             if (script.Kind == LinqPadQueryKind.Program)
-                return new ScriptExecutor.LinqMigrationExecutor();
+                return new ScriptExecutor.LinqPadProgramExecutor();
             else if (script.Kind == LinqPadQueryKind.Expression)
-                return new ScriptExecutor.LinqUnitTestExecutor();
+                return new ScriptExecutor.LinqPadExpressionAsUnitTestExecutor();
             else
                 throw new NotSupportedException(string.Format("Query Kind '{0}' is not supported.", script.Kind));
         }
