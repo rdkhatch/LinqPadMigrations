@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.CSharp;
 
@@ -14,6 +15,8 @@ namespace LinqPadMigrations.ScriptCompiler
     {
         public readonly static string GeneratedClass = "Generated.MyProgram";
         public readonly static string GeneratedMethod = "Main";
+        public readonly static string QuotedStringReplacePrefix = "_____ReplacedString____";
+        public readonly static string ContextName = "____context";
 
         public LinqPadQuery Parse(string scriptFilePath)
         {
@@ -47,9 +50,6 @@ namespace LinqPadMigrations.ScriptCompiler
                                                from nspace in namespaceGroup
                                                select string.Format("using {0};", nspace));
 
-            // Add DataContext source to executable script
-            program.SourceCodePieces.Add(generatedDataContextCode);
-
             // Wrap Code in Main() method (if needed)
             var scriptMethodCode = ConvertScriptIntoMethodByQueryKind(script, generatedDataContextCode);
 
@@ -68,8 +68,9 @@ namespace LinqPadMigrations.ScriptCompiler
             
             ", namespaces, scriptMethodCode);
 
-            // Add Code to Program
+            // Add Code and DataContext source to executable script
             program.SourceCodePieces.Add(code);
+            program.SourceCodePieces.Add(generatedDataContextCode);
 
             return program;
         }
@@ -83,10 +84,8 @@ namespace LinqPadMigrations.ScriptCompiler
             }
             else if (script.Kind == LinqPadQueryKind.Expression)
             {
-                string contextName = "____context";
-
                 // Add Context to Expression
-                var expressionWithContext = AddContextToExpression(script.ScriptCode, contextName, generatedDataContextCode);
+                var expressionWithContext = AddContextToExpression(script.ScriptCode, ContextName, generatedDataContextCode);
 
                 // Hookup Expressions to DataContext
                 var code = String.Format(@"
@@ -97,16 +96,16 @@ namespace LinqPadMigrations.ScriptCompiler
                                     // Create new DataContext
                                     var {0} = new {1}();
 
-                                    object q = {2};
+                                    object _q_ = {2};
 
                                     // Execute Query, if a deferred enumerable
-                                    if (q != null && q is IEnumerable)
-                                        q = (q as IEnumerable).Cast<object>().ToList();
+                                    if (_q_ != null && _q_ is IEnumerable)
+                                        _q_ = (_q_ as IEnumerable).Cast<object>().ToList();
 
-                                    return q;
+                                    return _q_;
                                 }}
 
-                            ", contextName, LinqToSQLDataContextGenerator.DataContextName, expressionWithContext);
+                            ", ContextName, LinqToSQLDataContextGenerator.DataContextName, expressionWithContext);
 
                 return code;
             }
@@ -114,18 +113,9 @@ namespace LinqPadMigrations.ScriptCompiler
                 return string.Format(@"public void Main() {{ {0} }}", script.ScriptCode);
         }
 
-        private static string AddContextToExpression(string expression, string contextName, string generatedDataContextCode)
+        private static List<string> GetTableNamesFromDataContextAssembly(Assembly assembly)
         {
-            // Other method (not being used) : How to replace text outside of markers:  http://stackoverflow.com/questions/3187248/replace-using-regex-outside-of-text-markers
-
-            // Use Cases:
-            //      from _var_ in TableName
-            //      let _var_ = TableName.Where(.....)
-            //      select new { TableName = ... }
-
-            // Compile DataContext and Reflect over table names
-            Assembly assembly = new CodeDomScriptCompiler(new CSharpCodeProvider()).Compile(StandardAssemblies, new[] { generatedDataContextCode });
-
+            // Reflect over table names
             var tableAttributeType = typeof(System.Data.Linq.Mapping.TableAttribute);
 
             var tableTypes = from type in assembly.GetTypes()
@@ -134,19 +124,73 @@ namespace LinqPadMigrations.ScriptCompiler
 
             // List of the table names
             var tableNames = tableTypes.Select(type => type.Name).ToList();
+            return tableNames;
+        }
 
-            string fixedExpression = expression;
+        private static string ReplaceQuotedStringsWithTokens(string expression, out Dictionary<string, string> tokens)
+        {
+            // Match Quoted Strings (http://stackoverflow.com/questions/2148587/regex-quoted-string-with-escaped-quotes-in-c-sharp)
+            Regex stringRegex = new Regex(@"""[^""\\]*(?:\\.[^""\\]*)*""");
 
+            var myTokens = new Dictionary<string, string>();
+            int stringReplacementCounter = 0;
+
+            MatchEvaluator replaceStringWithToken = (match) =>
+            {
+                stringReplacementCounter++;
+
+                var token = QuotedStringReplacePrefix + stringReplacementCounter;
+                myTokens.Add(token, match.Value);
+
+                return token;
+            };
+
+            // Replace quoted strings with Tokens
+            var result = stringRegex.Replace(expression, replaceStringWithToken);
+            tokens = myTokens;
+
+            return result;
+        }
+
+        private static string AddContextToExpression(string originalExpression, string contextName, string generatedDataContextCode)
+        {
+            // Should Match
+            //      from _var_ in Customers
+            //      let _var_ = Customers.Where(.....)
+
+            // Should NOT Match
+            //      select new { Customers = c }
+            //      select new { CustomersSuffix = c }
+            //      where "Customers".Length == 9
+
+            var expression = originalExpression;
+
+            // Compile DataContext
+            Assembly assembly = new CodeDomScriptCompiler(new CSharpCodeProvider()).Compile(StandardAssemblies, new[] { generatedDataContextCode });
+
+            // Get Table Names
+            var tableNames = GetTableNamesFromDataContextAssembly(assembly);
+
+            // Replace quoted strings with Tokens
+            Dictionary<string, string> tokens = null;
+            expression = ReplaceQuotedStringsWithTokens(expression, out tokens);
+
+            // Replace TableNames with ___context.[TableName]
             foreach (var tableName in tableNames)
             {
-                // Find tableName - which is preceded by a whitespace, and NOT followed by an equal sign (avoid assignments in select new { tableName = .... }
-                string findExpr = string.Format(@"(?<=\s)({0})(?!\s*?=)", tableName);
+                // Find tableName - which is preceded by a whitespace, and either followed by a period (.) OR (followed by spaces AND NOT followed by an equal sign)
+                // Avoiding equal sign avoids assignments like LET and SELECT NEW { tableName = .... }
+                string findExpr = string.Format(@"(?<=\s)({0})(?=(\.|\s+[^\s=]))", tableName);
                 // Replace with context prefix
                 string replaceExpr = string.Format(" {0}.$1", contextName);
-                fixedExpression = System.Text.RegularExpressions.Regex.Replace(fixedExpression, findExpr, replaceExpr);
+                expression = Regex.Replace(expression, findExpr, replaceExpr);
             }
 
-            return fixedExpression;
+            // Replace Tokens with their original string values
+            Regex tokenRegex = new Regex(QuotedStringReplacePrefix + @"[0-9]*");
+            expression = tokenRegex.Replace(expression, (match) => tokens[match.Value]);
+
+            return expression;
         }
 
         /// <summary>

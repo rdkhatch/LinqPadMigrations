@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using LinqPadMigrations.Migrators;
-using Microsoft.CSharp;
 
 namespace LinqPadMigrations.ScriptCompiler
 {
@@ -20,8 +19,6 @@ namespace LinqPadMigrations.ScriptCompiler
         public Assembly Compile(IEnumerable<string> assemblyReferences, IEnumerable<string> codePieces)
         {
             bool success = true;
-
-            compiler = new CSharpCodeProvider();
 
             var parameters = new CompilerParameters();
             parameters.ReferencedAssemblies.AddRange(assemblyReferences.ToArray());

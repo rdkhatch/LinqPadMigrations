@@ -57,6 +57,11 @@ namespace LinqPadMigrations.Tests
             return connectionString;
         }
 
+        protected void PerformTest(string scriptFile)
+        {
+            PerformTest(scriptFile, null);
+        }
+
         protected void PerformTest(string scriptFile, Action<NorthwindContext> afterScript)
         {
             PerformTest(scriptFile, null, afterScript);

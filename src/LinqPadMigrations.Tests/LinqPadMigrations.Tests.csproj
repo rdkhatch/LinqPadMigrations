@@ -74,8 +74,10 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Northwind.dbml</DependentUpon>
     </Compile>
+    <Compile Include="Test_Linq_Context.cs" />
+    <Compile Include="Test_Linq_Execution.cs" />
     <Compile Include="TestBase.cs" />
-    <Compile Include="Tests.cs" />
+    <Compile Include="Test_SQL_Scripts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestScripts.cs" />
   </ItemGroup>
@@ -92,18 +94,26 @@
       <LastGenOutput>Northwind.designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </None>
-    <None Include="NLog.config" />
+    <None Include="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <None Include="TempDBs\placeholder.to.copy.folder.do.not.delete">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestScripts\LinqPad Query Expression.ContextReplace.TableName within String.linq">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestScripts\LinqPad Query Expression.ContextReplace.Using Case Sensitive TableName.linq">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestScripts\LinqPad Query Expression.Failing - Returns Single Value.linq">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="TestScripts\LinqPad Query Expression.Using Select New TableName.linq">
+    <None Include="TestScripts\LinqPad Query Expression.ContextReplace.Using Select New TableName.linq">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="TestScripts\LinqPad Query Expression.Failing - Returns Results.linq">
+    <None Include="TestScripts\LinqPad Query Expression.Failing - Returns Collection.linq">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestScripts\LinqPad Query Expression.Passing - Returns Zero Results.linq">

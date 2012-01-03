@@ -8,5 +8,4 @@
   <Reference>&lt;RuntimeDirectory&gt;\System.Web.dll</Reference>
 </Query>
 
-(from c in Customers
-select c).First()
+Customers.Take(50)

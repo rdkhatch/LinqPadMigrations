@@ -39,6 +39,10 @@ namespace LinqPadMigrations
 
             var migrationResults = new List<MigrationResult>();
 
+            // Switch to temp folder so generated assemblies go there
+            var previousCurrentDirectory = Environment.CurrentDirectory;
+            //Environment.CurrentDirectory = Path.GetTempPath();
+
             // Execute Migration Scripts
             foreach (var tuple in q)
             {
@@ -55,6 +59,9 @@ namespace LinqPadMigrations
                 if (migrationResult.Success == false)
                     break;
             }
+
+            // Resume back to previous current folder
+            Environment.CurrentDirectory = previousCurrentDirectory;
 
             return new BatchMigrationResult(migrationResults);
         }

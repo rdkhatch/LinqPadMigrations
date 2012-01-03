@@ -1,13 +1,16 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using LinqPadMigrations.ScriptCompiler;
 using LinqPadMigrations.Support;
 using Microsoft.CSharp;
+using NLog;
 
 namespace LinqPadMigrations.Migrators
 {
     public abstract class LinqMigratorBase : IMigrator
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public virtual bool CanExecute(string connectionString, string scriptFilePath)
         {
@@ -31,6 +34,12 @@ namespace LinqPadMigrations.Migrators
 
             // Convert LinqPad Script to Executable Source Code
             var executableScript = linqpadCreator.MakeScriptExecutable(script, generatedCSharpDataContext);
+            Action<Exception> logExceptionWithSourceCode = (ex) =>
+                {
+                    string primarySourceCode = executableScript.SourceCodePieces.First();
+                    logger.ErrorException(scriptFilePath, ex);
+                    logger.Error(primarySourceCode);
+                };
 
             // Create Compiler
             var csharpProvider = new CSharpCodeProvider();
@@ -44,7 +53,9 @@ namespace LinqPadMigrations.Migrators
             }
             catch (Exception ex)
             {
-                throw new MigrationException(new MigrationResult(scriptFilePath, false, new[] { "Failed to compile script." }, ex));
+                var myException = new MigrationException(new MigrationResult(scriptFilePath, false, new[] { "Failed to compile script." }, ex));
+                logExceptionWithSourceCode(myException);
+                throw myException;
             }
 
             IScriptExecutor executor = GetScriptExecutor(script);
@@ -55,9 +66,16 @@ namespace LinqPadMigrations.Migrators
                 var result = executor.Execute(assembly, scriptFilePath);
                 return result;
             }
+            catch (MigrationException ex)
+            {
+                logExceptionWithSourceCode(ex);
+                throw ex;
+            }
             catch (Exception ex)
             {
-                throw new MigrationException(new MigrationResult(scriptFilePath, false, new[] { "Failed to execute compiled script." }, ex));
+                var myException = new MigrationException(new MigrationResult(scriptFilePath, false, new[] { "Failed to execute compiled script." }, ex));
+                logExceptionWithSourceCode(myException);
+                throw myException;
             }
         }
 

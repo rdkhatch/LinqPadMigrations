@@ -21,18 +21,32 @@ namespace LinqPadMigrations.ScriptExecutor
             // Execute Script!
             object result = method.Invoke(programInstance, null);
 
+            int? enumerableItemCount = GetEnumerableItemCount(result);
+
             // Expect Null or True or IEnumerable.Count == 0 results
-            bool success = result == null || Equals(result, true) || (result is IEnumerable && (result as IEnumerable).Cast<object>().Count() == 0);
+            bool success = result == null || Equals(result, true) || (enumerableItemCount != null && enumerableItemCount == 0);
 
             string[] errorMessages = null;
-            if (!success)
+            if (success)
             {
-                errorMessages = new[] { "Linq Unit Test returned a failing value. Expected Null, True, or a collection of Zero items. Instead, values was: " + result.ToString() };
+                return new MigrationResult(scriptFileName, true, errorMessages, null);
+            }
+            else
+            {
+                errorMessages = new[] { "Linq Unit Test returned a failing value. Expected Null, True, or a collection of Zero items. Instead, collection count is: " + enumerableItemCount + ". Actual value: " + result.ToString() };
                 var migrationResult = new MigrationResult(scriptFileName, success, errorMessages, null);
                 throw new MigrationException(migrationResult);
             }
+        }
 
-            return new MigrationResult(scriptFileName, true, errorMessages, null);
+        private static int? GetEnumerableItemCount(object enumerable)
+        {
+            int? enumerableItemCount = null;
+
+            if (enumerable != null && enumerable is IEnumerable)
+                enumerableItemCount = (enumerable as IEnumerable).Cast<object>().Count();
+
+            return enumerableItemCount;
         }
     }
 }
