@@ -12,7 +12,7 @@ namespace LinqPadMigrations.Tests
         [Test]
         public void should_run_sql()
         {
-            PerformTest(TestScripts.SQL_RenameCustomerNamesToBrody,
+            PerformTest(TestAssets.SQL_RenameCustomerNamesToBrody,
                 (context) =>
                 {
                     var customer = context.Customers.First();
@@ -28,13 +28,13 @@ namespace LinqPadMigrations.Tests
         [Test]
         public void bad_sql_should_throw_exception()
         {
-            Assert.Throws<MigrationException>(() => PerformTest(TestScripts.SQL_BadSyntax));
+            Assert.Throws<MigrationException>(() => PerformTest(TestAssets.SQL_BadSyntax));
         }
 
         [Test]
         public void should_support_running_SQL_batches_using_GO_command()
         {
-            PerformTest(TestScripts.SQL_BatchCommandsUsingGO,
+            PerformTest(TestAssets.SQL_BatchCommandsUsingGO,
                 (context) =>
                 {
                     var customer = context.Customers.First();

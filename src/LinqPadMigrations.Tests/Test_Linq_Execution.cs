@@ -12,7 +12,7 @@ namespace LinqPadMigrations.Tests
         // Passes - This has wide code-coverage
         public void linq_QueryKind_Program_should_execute()
         {
-            PerformTest(TestScripts.LINQ_UpdateCustomerBOLIDTitlefromOwnertoManager,
+            PerformTest(TestAssets.LINQ_UpdateCustomerBOLIDTitlefromOwnertoManager,
                 (context) =>
                 {
                     var customer = context.Customers.Where(c => c.CustomerID == "BOLID").Single();
@@ -28,19 +28,19 @@ namespace LinqPadMigrations.Tests
         [Test]
         public void linq_QueryKind_Expression_Should_PASS_when_returns_zero_results()
         {
-            PerformTest(TestScripts.LinqPadQueryExpression_Passing);
+            PerformTest(TestAssets.LinqPadQueryExpression_Passing);
         }
 
         [Test]
         public void linq_QueryKind_Expression_Should_FAIL_when_returns_collection()
         {
-            Assert.Throws<MigrationException>(() => PerformTest(TestScripts.LinqPadQueryExpression_Failing_Returns_Collection));
+            Assert.Throws<MigrationException>(() => PerformTest(TestAssets.LinqPadQueryExpression_Failing_Returns_Collection));
         }
 
         [Test]
         public void linq_QueryKind_Expression_Should_FAIL_when_returns_single_value()
         {
-            Assert.Throws<MigrationException>(() => PerformTest(TestScripts.LinqPadQueryExpression_Failing_Returns_SingleValue));
+            Assert.Throws<MigrationException>(() => PerformTest(TestAssets.LinqPadQueryExpression_Failing_Returns_SingleValue));
         }
 
     }

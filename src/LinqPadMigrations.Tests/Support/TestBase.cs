@@ -4,6 +4,8 @@ using System.Data.Common;
 using System.Data.SqlServerCe;
 using System.IO;
 using System.Linq;
+using LinqPadMigrations.DBML.Manipulators;
+using LinqPadMigrations.Support;
 using LinqPadMigrations.Tests.Northwind;
 using NUnit.Framework;
 
@@ -75,8 +77,14 @@ namespace LinqPadMigrations.Tests
         private ILinqPadMigrator GetMigrator()
         {
             Func<string, DbConnection> sqlCompactConnectionFactory = (connString) => new SqlCeConnection(connString);
-            var migrator = new LinqPadMigrator(sqlCompactConnectionFactory);
+            var dbmlManipulator = GetDbmlManipulator();
+            var migrator = new LinqPadMigrator(sqlCompactConnectionFactory, dbmlManipulator);
             return migrator;
+        }
+
+        private IDbmlManipulator GetDbmlManipulator()
+        {
+            return new TestSerializingManipulator();
         }
     }
 }

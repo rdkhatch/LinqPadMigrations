@@ -1,9 +1,15 @@
 using System;
+using LinqPadMigrations.Support;
 
 namespace LinqPadMigrations.Migrators
 {
     public class SQLCompactLinqMigrator : LinqMigratorBase
     {
+        public SQLCompactLinqMigrator(IDbmlManipulator manipulator)
+            : base(manipulator)
+        {
+        }
+
         public override bool CanExecute(string connectionString, string scriptFilePath)
         {
             // SQL Compact connection strings contain:  "Data Source = MyDatabase.sdf"

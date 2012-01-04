@@ -20,7 +20,7 @@ namespace LinqPadMigrations.Tests
             var sqlMetalConnectionString = string.Format("\"{0}\"", extractedSQLCompactFilename);
 
             // Generate DataContext
-            var generatedDataContext = generator.GenerateDataContext_AndGetCSharpCode(connectionString, sqlMetalConnectionString);
+            var generatedDataContext = generator.GenerateDataContext_AndGetCSharpCode(connectionString, sqlMetalConnectionString, null);
 
             // Connection String should now be embedded into DataContext default constructor
             var defaultConstructorSignature = "public TypedDataContext() : this(@\"" + connectionString + "\")";
@@ -34,19 +34,19 @@ namespace LinqPadMigrations.Tests
         [Test]
         public void Linq_ContextReplacement_Should_ignore_anonymous_LET_and_SELECT_NEW_TABLENAME()
         {
-            PerformTest(TestScripts.LinqPadQueryExpression_ContextReplace_UsingSelectNewTableName);
+            PerformTest(TestAssets.LinqPadQueryExpression_ContextReplace_UsingSelectNewTableName);
         }
 
         [Test]
         public void Linq_ContextReplacement_should_be_case_sensitive()
         {
-            PerformTest(TestScripts.LinqPadQueryExpression_ContextReplace_UsingCaseSensitiveTableName);
+            PerformTest(TestAssets.LinqPadQueryExpression_ContextReplace_UsingCaseSensitiveTableName);
         }
 
         [Test]
         public void Linq_ContextReplacement_should_ignore_strings_containing_table_names()
         {
-            PerformTest(TestScripts.LinqPadQueryExpression_ContextReplace_TableNameWithinString);
+            PerformTest(TestAssets.LinqPadQueryExpression_ContextReplace_TableNameWithinString);
         }
 
         #endregion

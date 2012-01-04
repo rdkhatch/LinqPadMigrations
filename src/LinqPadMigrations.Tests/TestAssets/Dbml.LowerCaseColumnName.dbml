@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="Northwind" EntityNamespace="LinqPadMigrations.Tests.Northwind" ContextNamespace="LinqPadMigrations.Tests.Northwind" Class="NorthwindContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Table Name="Categories">
+    <Type Name="Categories">
+      <Column Name="categoryName" Member="CategoryName" Storage="_CategoryName" Type="System.String" DbType="NVarChar(15) NOT NULL" CanBeNull="false" />
+    </Type>
+  </Table>
+</Database>

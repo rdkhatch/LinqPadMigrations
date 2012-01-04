@@ -4,6 +4,7 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using LinqPadMigrations.Migrators;
+using LinqPadMigrations.Support;
 
 namespace LinqPadMigrations
 {
@@ -11,17 +12,22 @@ namespace LinqPadMigrations
     {
         private List<IMigrator> Migrators = new List<IMigrator>();
 
-        public LinqPadMigrator(Func<string, DbConnection> sqlConnectionFactory)
+        public LinqPadMigrator(Func<string, DbConnection> sqlConnectionFactory, IDbmlManipulator dbmlManipulator)
         {
             // Add Migrators, in order of priority
             // SQLCompact must be added before SQLServer (because it has a narrower CanExecute() match - used to generate correct SQLMetal command-line)
             Migrators.Add(new SQLMigrator(sqlConnectionFactory));
-            Migrators.Add(new SQLCompactLinqMigrator());
-            Migrators.Add(new SQLServerLinqMigrator());
+            Migrators.Add(new SQLCompactLinqMigrator(dbmlManipulator));
+            Migrators.Add(new SQLServerLinqMigrator(dbmlManipulator));
         }
 
         public LinqPadMigrator()
-            : this((connectionString) => new SqlConnection(connectionString))
+            : this(null)
+        {
+        }
+
+        public LinqPadMigrator(IDbmlManipulator dbmlManipulator)
+            : this((connectionString) => new SqlConnection(connectionString), dbmlManipulator)
         {
         }
 

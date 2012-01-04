@@ -12,6 +12,13 @@ namespace LinqPadMigrations.Migrators
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        protected readonly IDbmlManipulator dbmlManipulator;
+
+        protected LinqMigratorBase(IDbmlManipulator manipulator)
+        {
+            dbmlManipulator = manipulator;
+        }
+
         public virtual bool CanExecute(string connectionString, string scriptFilePath)
         {
             return scriptFilePath.ToUpper().EndsWith(".LINQ");
@@ -23,7 +30,7 @@ namespace LinqPadMigrations.Migrators
         {
             // Generate C# DataContext using SqlMetal
             var sqlMetalConnectionStringArg = GetSqlMetalConnectionStringArg(connectionString);
-            var generatedCSharpDataContext = new LinqToSQLDataContextGenerator().GenerateDataContext_AndGetCSharpCode(connectionString, sqlMetalConnectionStringArg);
+            var generatedCSharpDataContext = new LinqToSQLDataContextGenerator().GenerateDataContext_AndGetCSharpCode(connectionString, sqlMetalConnectionStringArg, dbmlManipulator);
 
             // Get LinqPad Script
             var linqpadCreator = new LinqPadCSharpCreator();

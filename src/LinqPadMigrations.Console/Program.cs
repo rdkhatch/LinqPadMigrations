@@ -2,6 +2,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using LinqPadMigrations.DBML.Manipulators;
+using LinqPadMigrations.Support;
 
 namespace LinqPadMigrations.Console
 {
@@ -12,13 +14,23 @@ namespace LinqPadMigrations.Console
             var options = new GeniusCode.Components.Console.Support.RequiredValuesOptionSet();
             var connectionString = options.AddRequiredVariable<string>("conn", "Connection string to use for Linq To SQL.");
             var relativeDirectory = options.AddRequiredVariable<string>("folder", "Folder that contains .SQL and .LINQ files for database migration.");
+            var capitalizePropertyNames = options.AddRequiredVariable<bool>("capitalize", "Capitalize Property Names, otherwise leave property same as column name.");
 
             var console = new GeniusCode.Components.Console.ConsoleManager(options, "LinqPadMigrations");
             bool success = console.PerformCanProceed(System.Console.Out, args);
 
             if (success)
             {
-                var migrator = new LinqPadMigrator();
+                IDbmlManipulator dbmlManipulator = null;
+
+                // DBML Manipulator to use.
+                // TODO: Add command line option to not need any manipulator (by passing null to LinqPadMigrator)
+                if (capitalizePropertyNames.Value)
+                    dbmlManipulator = new CapitalizePropertyNames();
+                else
+                    dbmlManipulator = new PreserveColumnNameCasing();
+
+                var migrator = new LinqPadMigrator(dbmlManipulator);
 
                 var directory = relativeDirectory.Value;
                 if (Path.IsPathRooted(directory) == false)

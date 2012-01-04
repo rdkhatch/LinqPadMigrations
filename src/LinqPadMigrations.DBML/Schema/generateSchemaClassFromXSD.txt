@@ -1,0 +1,3 @@
+﻿run this command in Visual Studio command prompt:
+
+xsd DbmlSchema.xsd /language:CS /classes /namespace:DbmlSchema
